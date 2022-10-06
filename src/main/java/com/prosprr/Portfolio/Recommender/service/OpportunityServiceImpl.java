@@ -4,12 +4,11 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.PriorityQueue;
 import java.util.Queue;
-import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -111,15 +110,14 @@ public class OpportunityServiceImpl implements OpportunityService {
 		}
 	}
 
-	List<Integer> stk = new ArrayList<>();
-	Queue<Pair> queue = new PriorityQueue<>(Comparator.comparing(Pair::getRate));
+	
 
 	@Override
 	public List<HashMap<String, String>> getPortfolio(List<OpportunityDTO> opportunities, double totalInvestment,
 			double expectedRate) {
-
-		stk.clear();
-		queue.clear();
+		
+		List<Integer> stk = new ArrayList<>();
+		Queue<Pair> queue = new PriorityQueue<>(Comparator.comparing(Pair::getRate));
 		
 		int[][] tableSets = new int[opportunities.size() + 1][(int) totalInvestment + 1];
 
@@ -138,43 +136,46 @@ public class OpportunityServiceImpl implements OpportunityService {
 				tableSets[i][j] += tableSets[i - 1][j];
 			}
 		}
+		
 		System.out.println(tableSets[opportunities.size()][(int) totalInvestment]);
 
-		getSolutions(opportunities.size(), (int) totalInvestment, tableSets, opportunities, expectedRate);
+		getSolutions(opportunities.size(), (int) totalInvestment, tableSets, opportunities, expectedRate,stk,queue);
 
 		List<HashMap<String, String>> result = new ArrayList<>();
 		
 		if(queue.size()==0) return result;
+		
+		
 		List<List<Integer>> ans = queue.peek().getFreq();
-
+		
 		double overallOneYearValue = 0.0;
 		double overallTwoYearValue = 0.0;
 		double overallThreeYearValue = 0.0;
 
 		for (List<Integer> inv : ans) {
 			HashMap<String, String> eachOpp = new HashMap<String, String>();
-			String name = opportunities.get(inv.get(0)).getName();
-			String quantity = inv.get(1) + "";
-			String oneYearValue = "" + (opportunities.get(inv.get(0)).getUnitPrice() * inv.get(1))
-					* (1 + (opportunities.get(inv.get(0)).getNextTwelveMonthReturnForecast() / 100) * 1);
-			String twoYearValue = "" + (opportunities.get(inv.get(0)).getUnitPrice() * inv.get(1))
-					* (1 + (opportunities.get(inv.get(0)).getNextTwelveMonthReturnForecast() / 100) * 2);
-			String threeYearValue = "" + (opportunities.get(inv.get(0)).getUnitPrice() * inv.get(1))
-					* (1 + (opportunities.get(inv.get(0)).getNextTwelveMonthReturnForecast() / 100) * 3);
+			String name = opportunities.get(inv.get(1)).getName();
+			String quantity = inv.get(0) + "";
+			String oneYearValue = "" + (opportunities.get(inv.get(1)).getUnitPrice() * inv.get(0))
+					* (1 + (opportunities.get(inv.get(1)).getNextTwelveMonthReturnForecast() / 100) * 1);
+			String twoYearValue = "" + (opportunities.get(inv.get(1)).getUnitPrice() * inv.get(0))
+					* (1 + (opportunities.get(inv.get(1)).getNextTwelveMonthReturnForecast() / 100) * 2);
+			String threeYearValue = "" + (opportunities.get(inv.get(1)).getUnitPrice() * inv.get(0))
+					* (1 + (opportunities.get(inv.get(1)).getNextTwelveMonthReturnForecast() / 100) * 3);
 			eachOpp.put("name", name);
 			eachOpp.put("quantity", quantity);
 			eachOpp.put("oneYearValue", oneYearValue);
 			eachOpp.put("twoYearValue", twoYearValue);
 			eachOpp.put("threeYearValue", threeYearValue);
-			overallOneYearValue += (opportunities.get(inv.get(0)).getUnitPrice() * inv.get(1))
-					* (1 + (opportunities.get(inv.get(0)).getNextTwelveMonthReturnForecast() / 100) * 1);
-			overallTwoYearValue += (opportunities.get(inv.get(0)).getUnitPrice() * inv.get(1))
-					* (1 + (opportunities.get(inv.get(0)).getNextTwelveMonthReturnForecast() / 100) * 2);
-			overallThreeYearValue += (opportunities.get(inv.get(0)).getUnitPrice() * inv.get(1))
-					* (1 + (opportunities.get(inv.get(0)).getNextTwelveMonthReturnForecast() / 100) * 3);
+			overallOneYearValue += (opportunities.get(inv.get(1)).getUnitPrice() * inv.get(0))
+					* (1 + (opportunities.get(inv.get(1)).getNextTwelveMonthReturnForecast() / 100) * 1);
+			overallTwoYearValue += (opportunities.get(inv.get(1)).getUnitPrice() * inv.get(0))
+					* (1 + (opportunities.get(inv.get(1)).getNextTwelveMonthReturnForecast() / 100) * 2);
+			overallThreeYearValue += (opportunities.get(inv.get(1)).getUnitPrice() * inv.get(0))
+					* (1 + (opportunities.get(inv.get(1)).getNextTwelveMonthReturnForecast() / 100) * 3);
 			result.add(eachOpp);
 		}
-		double rate = 100 * (overallOneYearValue - totalInvestment) / totalInvestment;
+		double rate = 100 * ((overallOneYearValue - totalInvestment) / totalInvestment);
 		HashMap<String, String> overall = new HashMap<String, String>();
 		String OvoneYearValue = "" + overallOneYearValue;
 		String OvtwoYearValue = "" + overallTwoYearValue;
@@ -204,18 +205,32 @@ public class OpportunityServiceImpl implements OpportunityService {
 
 	public static List<List<Integer>> countFreq(List<Integer> stk2) {
 		List<List<Integer>> freq = new ArrayList<>();
-		Set<Integer> st = new HashSet<Integer>(stk2);
-		List<Integer> temp = new ArrayList<Integer>();
-		for (Integer s : st) {
-			temp.add(s);
-			temp.add(Collections.frequency(stk2, s));
-		}
-		freq.add(temp);
+		
+		Map<Integer, Integer> mp = new HashMap<>();
+		for (int i = 0; i < stk2.size(); i++)
+        {
+            if (mp.containsKey(stk2.get(i)))
+            {
+                mp.put(stk2.get(i), mp.get(stk2.get(i)) + 1);
+            }
+            else
+            {
+                mp.put(stk2.get(i), 1);
+            }
+        }
+		for (Map.Entry<Integer, Integer> entry : mp.entrySet())
+        {
+			List<Integer> temp = new ArrayList<>();
+			temp.add(0, entry.getKey());
+			temp.add(0, entry.getValue());
+			freq.add(temp);
+        }
+		
 		return freq;
 	}
 
 	private void getSolutions(int i, int j, int[][] tableSets, List<OpportunityDTO> opportunities,
-			double expectedRate) {
+			double expectedRate, List<Integer> stk, Queue<Pair> queue) {
 		if (tableSets[i][j] == 0) {
 			return;
 		}
@@ -226,7 +241,16 @@ public class OpportunityServiceImpl implements OpportunityService {
 					rate += (opportunities.get(idx).getNextTwelveMonthReturnForecast());
 				}
 				rate /= stk.size();
-
+//				for(Integer x:stk)
+//				{
+//					System.out.print(x+" ");
+//				}
+//				System.out.println();
+//				for(List<Integer> x: countFreq(stk))
+//				{
+//					System.out.print(x.get(0)+" "+x.get(1));
+//				}
+//				System.out.println();
 				if (queue.size() == 5) {
 					if (Math.abs(rate - expectedRate) < queue.peek().getRate()) {
 						queue.poll();
@@ -240,9 +264,9 @@ public class OpportunityServiceImpl implements OpportunityService {
 		}
 		if (tableSets[i][j] > tableSets[i - 1][j]) {
 			stk.add(i - 1);
-			getSolutions(i, j - (int) opportunities.get(i - 1).getUnitPrice(), tableSets, opportunities, expectedRate);
+			getSolutions(i, j - (int) opportunities.get(i - 1).getUnitPrice(), tableSets, opportunities, expectedRate,stk,queue);
 			stk.remove(stk.size() - 1);
 		}
-		getSolutions(i - 1, j, tableSets, opportunities, expectedRate);
+		getSolutions(i - 1, j, tableSets, opportunities, expectedRate,stk,queue);
 	}
 }
