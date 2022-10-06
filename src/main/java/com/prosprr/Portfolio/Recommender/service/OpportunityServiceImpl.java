@@ -1,7 +1,6 @@
 package com.prosprr.Portfolio.Recommender.service;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -119,7 +118,7 @@ public class OpportunityServiceImpl implements OpportunityService {
 		List<Integer> stk = new ArrayList<>();
 		Queue<Pair> queue = new PriorityQueue<>(Comparator.comparing(Pair::getRate));
 		
-		int[][] tableSets = new int[opportunities.size() + 1][(int) totalInvestment + 1];
+		long [][] tableSets = new long [opportunities.size() + 1][(int) totalInvestment + 1];
 
 		for (int j = 0; j <= (int) totalInvestment; j++) {
 			tableSets[0][j] = 0;
@@ -144,7 +143,6 @@ public class OpportunityServiceImpl implements OpportunityService {
 		List<HashMap<String, String>> result = new ArrayList<>();
 		
 		if(queue.size()==0) return result;
-		
 		
 		List<List<Integer>> ans = queue.peek().getFreq();
 		
@@ -229,7 +227,7 @@ public class OpportunityServiceImpl implements OpportunityService {
 		return freq;
 	}
 
-	private void getSolutions(int i, int j, int[][] tableSets, List<OpportunityDTO> opportunities,
+	private void getSolutions(int i, int j, long[][] tableSets, List<OpportunityDTO> opportunities,
 			double expectedRate, List<Integer> stk, Queue<Pair> queue) {
 		if (tableSets[i][j] == 0) {
 			return;
@@ -251,7 +249,7 @@ public class OpportunityServiceImpl implements OpportunityService {
 //					System.out.print(x.get(0)+" "+x.get(1));
 //				}
 //				System.out.println();
-				if (queue.size() == 5) {
+				if (queue.size() == 1) {
 					if (Math.abs(rate - expectedRate) < queue.peek().getRate()) {
 						queue.poll();
 						queue.add(new Pair(rate, countFreq(stk)));
